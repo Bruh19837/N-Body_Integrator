@@ -12,4 +12,5 @@
 
 | Version | Hardware              | Threads | Calculation time | Energy drift |
 |---------|------------------------|---------|---------|--------------|
-| V1      | M4 Macbook Air        | 1       | 54.886s    | $3.805*10^-7$% |
+| V1      | M4 Macbook Air        | 1       | 54.886s    | $3.805\cdot10^-7$% |
+| V2      | M4 Macbook Air        | 1       | 62.068s	 | $5.240\cdot10^-12$% |
