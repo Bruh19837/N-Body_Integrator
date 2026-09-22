@@ -5,8 +5,8 @@ MAIN CLASS
 
 An attempt at making a basic simulator using matplotlib to graph how multiple
 bodies interact given a set of initial values including mass, position, and velcotiy.
-This version uses a Semi-Implicit Eulers' Integration method due to it its
-sympletic property. Aka mostly energy conversing over time.
+This version uses the Leapfrog method due to it its higher accuracy in energy conservation
+in higher simulation times.
 """
 
 import math
@@ -31,6 +31,32 @@ def Force_Of_Gravity(mass1: float, mass2: float, vector_magnitude: float) -> flo
     
     return (G * mass1 * mass2 / vector_magnitude **2)
 
+def Forces_On_All_Bodies(bodies: list[Body]) -> list:
+    """
+    Return the net gravitational force vector acting on each body in
+    <bodies>, given the bodies' current positions.
+
+    Preconditions:
+    - len(bodies) >= 2
+    - ∀ x,y ∈ <bodies> (x.pos ≠ y.pos)
+    """
+    #  Array to Store Force Data Between Bodies
+    forces = [np.zeros(2) for _ in bodies]
+    for i,j in combinations(range(len(bodies)), 2):
+            # Distance Calculation
+            Vector = bodies[j].pos - bodies[i].pos
+            Vector_Magnitude = np.linalg.norm(Vector)
+
+            # Force Calculation
+            force_Magnitude = Force_Of_Gravity(bodies[i].mass, bodies[j].mass, Vector_Magnitude)
+            force_Vector = force_Magnitude * (Vector / Vector_Magnitude)
+
+            # Storing Force Calculation
+            forces[i] += force_Vector
+            forces[j] -= force_Vector
+
+    return forces
+
 def Energy_In_System(bodies: list[Body]) -> float:
     """
     Return the total energy of the system of <bodies>
@@ -51,10 +77,37 @@ def Energy_In_System(bodies: list[Body]) -> float:
 
     return (Kinetic_Energy + Potential_Energy)
 
+def Half_Kick(bodies: list[Body], forces: list, interval_of_time: float) -> None:
+    """
+    Advance the velocity of every body in <bodies> by half a step of size
+    <interval_of_time>, using the corresponding force in <forces>.
+
+    Each body in <bodies> is mutated in place; positions are left unchanged.
+
+    Preconditions:
+    - len(bodies) == len(forces)
+    - interval_of_time > 0
+    """
+    for body, force in zip(bodies, forces):
+                body.vel += (force / body.mass) * (interval_of_time / 2)
+
+def Drift(bodies: list[Body], interval_of_time: float) -> None:
+    """
+    Advance the position of every body in <bodies> by a full step of size
+    <interval_of_time>, using each body's current velocity.
+
+    Each body in <bodies> is mutated in place; velocities are left unchanged.
+
+    Preconditions:
+    - interval_of_time > 0
+    """
+    for body in bodies:
+        body.pos += body.vel * interval_of_time
+
 def Simulate(bodies: list[Body], total_simulation_time: float, interval_of_time: float, energy_conservation_stat: bool = False, run_time_stat: bool = False) -> list:
     """
-    Simulate <bodies> forward in time for <total_simulation_time> using time-steps of size
-    <interval_of_time>, using Semi-Implicit Euler integration, and return the
+    Simulate <bodies> forward in time for <total_simulation_time> steps of size
+    <interval_of_time>, using Leapfrog integration, and return the
     recorded trajectory
  
     Each body in <bodies> is mutated in place over the course of the simulation.
@@ -81,35 +134,28 @@ def Simulate(bodies: list[Body], total_simulation_time: float, interval_of_time:
     # Array Containing Positional Movement Data Across "Steps" in Time
     Trajectory = np.zeros((math.floor(total_simulation_time/interval_of_time), len(bodies), 2))
 
+    # Initial acceleration And Array to Store Force Data Between Bodies
+    Forces = Forces_On_All_Bodies(bodies)
+
     # "Stepping" Through Intervals of Time Till Total Simulation Time is reached
     for step in range(math.floor(total_simulation_time/interval_of_time)):
-        # Array to Store Force Data Between Bodies
-        Forces = [np.zeros(2) for _ in bodies]
 
-        # Calculating Distance Between Bodies and Force Between Bodies
-        for i, j in combinations(range(len(bodies)), 2):
+        #Kick
+        Half_Kick(bodies, Forces, interval_of_time)
 
-            # Distance Calculation
-            Vector = bodies[j].pos - bodies[i].pos
-            Vector_Magnitude = np.linalg.norm(Vector)
+        #Drift
+        Drift(bodies, interval_of_time)
 
-            # Force Calculation
-            Force_Magnitude = Force_Of_Gravity(bodies[i].mass, bodies[j].mass, Vector_Magnitude)
-            Force_Vector = Force_Magnitude * (Vector / Vector_Magnitude)
+        #Recalculate and Store Force Data
+        Forces = Forces_On_All_Bodies(bodies)
 
-            # Storing Force Calculation
-            Forces[i] += Force_Vector
-            Forces[j] -= Force_Vector
-
-        # Updating Body Velocity and Position
-        for body, force in zip(bodies, Forces):
-            body.vel += (force / body.mass) * interval_of_time
-            body.pos += body.vel * interval_of_time
+        #Kick
+        Half_Kick(bodies, Forces, interval_of_time)
 
         # Storing Time Data and Body Position Data
         for k, body in enumerate(bodies):
             Trajectory[step, k] = body.pos
-
+            
     # End Recording Time
     if energy_conservation_stat:
         Final_Energy = Energy_In_System(bodies)
@@ -145,12 +191,12 @@ if __name__ == "__main__":
     # Trajectory Information
     Trajectory = Total_Information[0]
 
-	# Run Time Information
+    # Run Time Information
     if len(Total_Information) > 1:
         Calculation_Time = Total_Information[1]
         print(f"Calculation Time: {Calculation_Time} seconds")
 
-	# Energy Conservation Information
+    # Energy Conservation Information
     if len(Total_Information) > 2:
         Energy_Conservation_Delta = Total_Information[2]
         print(f"Energy Conservation Delta: {Energy_Conservation_Delta} %")
