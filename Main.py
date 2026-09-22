@@ -135,13 +135,14 @@ if __name__ == "main":
     Bodies: list[Body] = []
             
     # Replace With Desired Total Simulation Time
-    Total_Simulation_Time: float = 1000
+    Total_Simulation_Time: float = 0
     # Replace With Desired Length Of Interval
-    Interval_Of_Time: float = 1.0 
+    Interval_Of_Time: float = 0.0 
 
     # Calculate The Trajectory Of All Bodies
     Total_Information = Simulate(Bodies, Total_Simulation_Time, Interval_Of_Time)
 
+    # Trajectory Information
     Trajectory = Total_Information[0]
 
 	# Run Time Information
