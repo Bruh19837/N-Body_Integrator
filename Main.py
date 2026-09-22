@@ -130,7 +130,7 @@ def Simulate(bodies: list[Body], total_simulation_time: float, interval_of_time:
 
     return Results
 
-if __name__ == "main":
+if __name__ == "__main__":
     # Add Desired Simulation Bodies
     Bodies: list[Body] = []
             
