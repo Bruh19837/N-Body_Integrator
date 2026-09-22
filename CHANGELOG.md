@@ -2,7 +2,7 @@
 
 ### Added
 - Initial N-body Gravitational Simulation
-- Integration Method Involves Semi-implicit Euler Method
+- Integration Method Involves Leapfrog Integration Method
 - Direct Pairwise Force Calculation Between All Bodies
 - Outputs Graph Plotting Trajectory Of Bodies At The End Of Simulation Time
 
