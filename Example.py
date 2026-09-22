@@ -29,13 +29,13 @@ if __name__ == '__main__':
 	Trajectory = Total_Information[0]
 
 	# Run Time Information
-	if len(Total_Information) > 2:
-		Calculation_Time = Total_Information[2]
+	if len(Total_Information) > 1:
+		Calculation_Time = Total_Information[1]
 		print(f"Calculation Time: {Calculation_Time} seconds")
 
 	# Energy Conservation Information
-	if len(Total_Information) > 1:
-		Energy_Conservation_Delta = Total_Information[1]
+	if len(Total_Information) > 2:
+		Energy_Conservation_Delta = Total_Information[2]
 		print(f"Energy Conservation Delta: {Energy_Conservation_Delta} %")
 
 	# Plot All Bodies
