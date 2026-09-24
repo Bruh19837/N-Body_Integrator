@@ -10,102 +10,53 @@ in higher simulation times.
 """
 
 import math
-import time
 import numpy as np
 import matplotlib.pyplot as plt
-from itertools import combinations
-from Body import Body
+import time
 
 # Gravitational Constant
 G = 6.67430 * 10**-11 
 
-def Force_Of_Gravity(mass1: float, mass2: float, vector_magnitude: float) -> float:
-    """
-    Return the magnitude of the gravitational force between two masses
-    <mass1> and <mass2> separated by a distance <vector_magnitude>
- 
-    Preconditions:
-    - mass1 > 0 and mass2 > 0
-    - vector_magnitude > 0
-    """
-    
-    return (G * mass1 * mass2 / vector_magnitude **2)
+def Calculate_Net_Forces(masses_list: np.ndarray, positions_list: np.ndarray) -> np.ndarray:
+	"""
+	Return the net force vectors acting on each body in <bodies> due to all other bodies
 
-def Forces_On_All_Bodies(bodies: list[Body]) -> list:
-    """
-    Return the net gravitational force vector acting on each body in
-    <bodies>, given the bodies' current positions.
-
-    Preconditions:
-    - len(bodies) >= 2
+	Precondition:
     - ∀ x,y ∈ <bodies> (x.pos ≠ y.pos)
-    """
-    #  Array to Store Force Data Between Bodies
-    forces = [np.zeros(2) for _ in bodies]
-    for i,j in combinations(range(len(bodies)), 2):
-            # Distance Calculation
-            Vector = bodies[j].pos - bodies[i].pos
-            Vector_Magnitude = np.linalg.norm(Vector)
+	- len(masses_list) == len(positions_list) == len(velocities_list)
+	"""
+	# Calculate Distance Vectors and Distance Magnitudes Between All Bodies
+	Vectors = positions_list[np.newaxis, :, :] - positions_list[:, np.newaxis, :]
+	Vector_Magnitudes = np.linalg.norm(Vectors, axis=2)
 
-            # Force Calculation
-            force_Magnitude = Force_Of_Gravity(bodies[i].mass, bodies[j].mass, Vector_Magnitude)
-            force_Vector = force_Magnitude * (Vector / Vector_Magnitude)
+	# Dealing With Division By Zero When Calculating Force Between A Body and Itself 
+	np.fill_diagonal(Vector_Magnitudes, np.inf)
 
-            # Storing Force Calculation
-            forces[i] += force_Vector
-            forces[j] -= force_Vector
+	# Calculate Force Vectors
+	Force_Vectors = (G * (masses_list[:, np.newaxis] * masses_list[np.newaxis, :]) / Vector_Magnitudes**3)[:, :, np.newaxis] * Vectors
 
-    return forces
+	# Return Net Force Vectors for Each Body
+	return Force_Vectors.sum(axis=1)
 
-def Energy_In_System(bodies: list[Body]) -> float:
+def Energy_In_System(masses: np.ndarray, positions: np.ndarray, velocities: np.ndarray) -> float:
     """
     Return the total energy of the system of <bodies>
  
     Preconditions:
     - ∀ x,y ∈ <bodies> (x.pos ≠ y.pos)
+	- len(masses_list) == len(positions_list) == len(velocities_list)
     """
     
     # Kinetic Energy Calculation
-    Kinetic_Energy = sum([0.5 * body.mass * np.linalg.norm(body.vel)**2 for body in bodies])
+    Kinetic_Energy = sum([0.5 * mass * np.linalg.norm(velocity)**2 for mass, velocity in zip(masses, velocities)])
     
     # Potential Energy Calculation
-    Potential_Energy = 0
-    for i, j in combinations(range(len(bodies)), 2):
-        Vector = bodies[j].pos - bodies[i].pos
-        Vector_Magnitude = np.linalg.norm(Vector)
-        Potential_Energy += -G * bodies[i].mass * bodies[j].mass / Vector_Magnitude
+    Potential_Energy = sum((-G * masses[i] * masses[j])/np.linalg.norm(positions[j] - positions[i]) for i in range(len(masses)) for j in range(i + 1, len(masses)))
 
     return (Kinetic_Energy + Potential_Energy)
 
-def Half_Kick(bodies: list[Body], forces: list, interval_of_time: float) -> None:
-    """
-    Advance the velocity of every body in <bodies> by half a step of size
-    <interval_of_time>, using the corresponding force in <forces>.
-
-    Each body in <bodies> is mutated in place; positions are left unchanged.
-
-    Preconditions:
-    - len(bodies) == len(forces)
-    - interval_of_time > 0
-    """
-    for body, force in zip(bodies, forces):
-                body.vel += (force / body.mass) * (interval_of_time / 2)
-
-def Drift(bodies: list[Body], interval_of_time: float) -> None:
-    """
-    Advance the position of every body in <bodies> by a full step of size
-    <interval_of_time>, using each body's current velocity.
-
-    Each body in <bodies> is mutated in place; velocities are left unchanged.
-
-    Preconditions:
-    - interval_of_time > 0
-    """
-    for body in bodies:
-        body.pos += body.vel * interval_of_time
-
-def Simulate(bodies: list[Body], total_simulation_time: float, interval_of_time: float, energy_conservation_stat: bool = False, run_time_stat: bool = False) -> list:
-    """
+def Simulate(masses: np.ndarray, positions: np.ndarray, velocities: np.ndarray, total_simulation_time: float, interval_of_time: float, energy_conservation_stat: bool = False, run_time_stat: bool = False) -> list:
+	"""
     Simulate <bodies> forward in time for <total_simulation_time> steps of size
     <interval_of_time>, using Leapfrog integration, and return the
     recorded trajectory
@@ -117,76 +68,89 @@ def Simulate(bodies: list[Body], total_simulation_time: float, interval_of_time:
     - number_of_steps > 0
     - dt > 0
     - ∀ x,y ∈ <bodies> (x.pos ≠ y.pos)
+	- len(masses_list) == len(positions_list) == len(velocities_list)
  
     Return value:
     - a numpy array of shape (number_of_steps, len(bodies), 2), where
       trajectory[step, k] is the position of bodies[k] after <step> steps
-    """
+	"""
+	Masses = masses.copy()
+	Positions = positions.copy()
+	Velocities = velocities.copy()
 
     # Start Recording Time
-    if run_time_stat:
-        Start_Time = time.perf_counter()
+	if run_time_stat:
+		Start_Time = time.perf_counter()
 
     # Record Initial Energy
-    if energy_conservation_stat:
-        Initial_Energy = Energy_In_System(bodies)
+	if energy_conservation_stat:
+		Initial_Energy = Energy_In_System(Masses, Positions, Velocities)
 
-    # Array Containing Positional Movement Data Across "Steps" in Time
-    Trajectory = np.zeros((math.floor(total_simulation_time/interval_of_time), len(bodies), 2))
+	# Calculate Number of Loops
+	Number_Of_Steps = math.floor(total_simulation_time/interval_of_time)
 
-    # Initial acceleration And Array to Store Force Data Between Bodies
-    Forces = Forces_On_All_Bodies(bodies)
+	# Initial Force Calculation to Reduce Loop Calculations
+	Net_Forces = Calculate_Net_Forces(Masses, Positions)
+
+	# Array Containing Positional Movement Data Across "Steps" in Time
+	Trajectory = np.zeros((Number_Of_Steps, len(Masses), 2))
 
     # "Stepping" Through Intervals of Time Till Total Simulation Time is reached
-    for step in range(math.floor(total_simulation_time/interval_of_time)):
+	for step in range(Number_Of_Steps):
 
-        #Kick
-        Half_Kick(bodies, Forces, interval_of_time)
+		# Kick
+		Velocities += (Net_Forces / Masses[:, np.newaxis]) * (interval_of_time / 2)
 
-        #Drift
-        Drift(bodies, interval_of_time)
+		# Drift
+		Positions += Velocities * interval_of_time
 
-        #Recalculate and Store Force Data
-        Forces = Forces_On_All_Bodies(bodies)
+		# Recalculate Forces
+		Net_Forces = Calculate_Net_Forces(Masses, Positions)
 
-        #Kick
-        Half_Kick(bodies, Forces, interval_of_time)
+		# Kick
+		Velocities += (Net_Forces / Masses[:, np.newaxis]) * (interval_of_time / 2)
 
-        # Storing Time Data and Body Position Data
-        for k, body in enumerate(bodies):
-            Trajectory[step, k] = body.pos
-            
-    # End Recording Time
-    if energy_conservation_stat:
-        Final_Energy = Energy_In_System(bodies)
+		# Storing Time Data and Body Position Data
+		Trajectory[step] = Positions
 
-    # Record Final Energy
-    if run_time_stat:
-        End_Time = time.perf_counter()
+	# End Recording Time
+	if run_time_stat:
+		End_Time = time.perf_counter()
 
-    # Return Values Based on Initialization
-    Results = [Trajectory]
+	# Record Final Energy
+	if energy_conservation_stat:
+		Final_Energy = Energy_In_System(Masses, Positions, Velocities)
 
-    # Add Time Value
-    if run_time_stat:
-        Results.append(End_Time - Start_Time)
-    # Add Energy Value
-    if energy_conservation_stat:
-        Results.append(math.fabs((Final_Energy - Initial_Energy) / Initial_Energy * 100))
+	# Return Values Based on Initialization
+	Results = [Trajectory]
 
-    return Results
+	# Add Time Value
+	if run_time_stat:
+		Results.append(End_Time - Start_Time)
+	# Add Energy Value
+	if energy_conservation_stat:
+		Results.append(math.fabs((Final_Energy - Initial_Energy) / Initial_Energy * 100))
+
+	return Results
 
 if __name__ == "__main__":
-    # Add Desired Simulation Bodies
-    Bodies: list[Body] = []
-            
     # Replace With Desired Total Simulation Time
-    Total_Simulation_Time: float = 0
+    Total_Simulation_Time: float = 0.0
     # Replace With Desired Length Of Interval
     Interval_Of_Time: float = 0.0 
 
+    # Define Masses, Initial Positions, and Initial Velocities of Bodies
+    # Insert Masses With Comma Separation
+    Masses = np.array([])
+
+    # Insert Initial Positions As Each Body Having It's Own Coordinate Pair In a List
+    Positions = np.array([])
+
+    # Insert Initial Velocity As Each Body Having It's Own Coordinate Pair In a List
+    Velocities = np.array([])
+
     # Calculate The Trajectory Of All Bodies
-    Total_Information = Simulate(Bodies, Total_Simulation_Time, Interval_Of_Time)
+    Total_Information = Simulate(Masses, Positions, Velocities, Total_Simulation_Time, Interval_Of_Time, True, True)
 
     # Trajectory Information
     Trajectory = Total_Information[0]
@@ -203,7 +167,7 @@ if __name__ == "__main__":
 
     # Plot All Bodies
     plt.figure()
-    for k in range(len(Bodies)):
+    for k in range(len(Masses)):
         plt.plot(Trajectory[:, k, 0], Trajectory[:, k, 1], label=f"body{k+1}")
     plt.gca().set_aspect('equal')
     plt.legend()

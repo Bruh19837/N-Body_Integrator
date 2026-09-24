@@ -5,17 +5,35 @@ along with showing energy conservation and total time to simulate.
 if __name__ == '__main__':
 	import numpy as np
 	import matplotlib.pyplot as plt
-	from Body import Body
 	from Main import Simulate
 
-	Bodies = [
-			Body(1.989e30, np.array([0., 0.]),       np.array([0.00, 0.00])),   # Sun
-			Body(3.301e23, np.array([5.791e10, 0.]), np.array([0., 4.784e4])),  # Mercury
-			Body(4.867e24, np.array([1.082e11, 0.]),  np.array([0., 3.502e4])), # Venus
-			Body(5.972e24, np.array([1.496e11, 0.]),  np.array([0., 2.978e4])), # Earth
-			Body(6.417e23, np.array([2.279e11, 0.]),  np.array([0., 2.408e4])), # Mars
-			# Adding The Gas Giants Makes The Graph So Large That The Inner Planets Become Hidden 
-			]
+	# Define Masses, Initial Positions, and Initial Velocities of Bodies
+	# Insert Masses With Comma Separation
+	Masses = np.array([
+		1.989e30,  # Sun
+		3.301e23,  # Mercury
+		4.867e24,  # Venus
+		5.972e24,  # Earth
+		6.417e23,  # Mars
+	])
+
+	# Insert Initial Positions As Each Body Having It's Own Coordinate Pair In a List
+	Positions = np.array([
+		[0.,       0.],  # Sun
+		[5.791e10, 0.],  # Mercury
+		[1.082e11, 0.],  # Venus
+		[1.496e11, 0.],  # Earth
+		[2.279e11, 0.],  # Mars
+	])
+
+	# Insert Initial Velocity As Each Body Having It's Own Coordinate Pair In a List
+	Velocities = np.array([
+		[0., 0.],      # Sun
+		[0., 4.784e4], # Mercury
+		[0., 3.502e4], # Venus
+		[0., 2.978e4], # Earth
+		[0., 2.408e4], # Mars
+	])
 
 	# Replace With Desired Total Simulation Time
 	Total_Simulation_Time: float = 59356800
@@ -23,7 +41,7 @@ if __name__ == '__main__':
 	Interval_Of_Time: float = 50
 
 	# Result Of Simulation
-	Total_Information = Simulate(Bodies, Total_Simulation_Time, Interval_Of_Time, True, True)
+	Total_Information = Simulate(Masses, Positions, Velocities, Total_Simulation_Time, Interval_Of_Time, True, True)
 
 	# Trajectory Information
 	Trajectory = Total_Information[0]
@@ -40,8 +58,9 @@ if __name__ == '__main__':
 
 	# Plot All Bodies
 	plt.figure()
-	for k in range(len(Bodies)):
+	for k in range(len(Masses)):
 		plt.plot(Trajectory[:, k, 0], Trajectory[:, k, 1], label=f"body{k+1}")
+	plt.gca().set_aspect('equal')
 	plt.legend()
 	plt.xlabel("x")
 	plt.ylabel("y")

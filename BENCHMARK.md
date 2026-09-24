@@ -10,7 +10,12 @@
 | Earth | 5.972e24 | (1.496e11, 0.) | (0., 2.978e4) |
 | Mars | 6.417e23 | (2.279e11, 0.) | (0., 2.408e4) |
 
+Total Simulation Time: 59356800s
+
+Interval Of Time: 50s
+
 | Version | Hardware              | Threads | Calculation time | Energy drift |
 |---------|------------------------|---------|---------|--------------|
 | V1      | M4 Macbook Air        | 1       | 54.886s    | $3.805\cdot10^-7$% |
 | V2      | M4 Macbook Air        | 1       | 62.068s	 | $5.240\cdot10^-12$% |
+| V3	  | M4 Macbook Air        | 1       | 19.364s	 | $3.382\cdot10^-12$% |

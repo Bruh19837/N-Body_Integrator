@@ -1,10 +1,7 @@
-## [2.0.0] - 2026-09-22
+## [3.0.0] - 2026-09-24
 
 ### Added
-- Initial N-body Gravitational Simulation
-- Integration Method Involves Leapfrog Integration Method
-- Direct Pairwise Force Calculation Between All Bodies
-- Outputs Graph Plotting Trajectory Of Bodies At The End Of Simulation Time
+- Decent Optimization
 
 ### Known limitations
 - Global Error Is O(t^2) With Per Step Error Being O(t^3)
